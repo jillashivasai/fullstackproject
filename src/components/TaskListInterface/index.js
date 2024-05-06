@@ -10,72 +10,80 @@ const TaskListInterface = () => {
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const storedTasks = localStorage.getItem('tasks') || [];
-    if (storedTasks) {
-      setTasks(JSON.parse(storedTasks));
+  const handleDelete = async (taskId) => {
+    try {
+      const response = await fetch(`  https://advise-passengers-slots-dude.trycloudflare.com/deleteuser/${taskId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+  
+      // Filter out the deleted task from the tasks state
+      const updatedTasks = tasks.filter((task) => task.id !== taskId);
+      setTasks(updatedTasks);
+    } catch (error) {
+      setError('Failed to delete task');
+      console.error(error);
     }
-  }, []);
+  };
   
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]); 
-  
+  const fetchTasks = async () => {
+    const response = await fetch(' https://advise-passengers-slots-dude.trycloudflare.com/getusers');
+    if (!response.ok) {
+      setError('No data present');
+      console.error('Failed to fetch data from the server');
+    } else {
+      const data = await response.json();
+      if (data.length === 0) {
+        setError('No data present');
+      } else {
+        setTasks(data);
+        setError('');
+      }
+    }
+  };
 
-  const addTask = () => {
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const addTask = async () => {
     if (newTask.trim() !== '' && assignedTo !== '') {
       const task = {
         id: uuidv4(),
         title: newTask,
         status: 'pending',
-        
         assignedTo: assignedTo
       };
-      setTasks([...tasks, task]);
-      setNewTask('');
-      setAssignedTo('');
-      setError('');
+      try {
+        const options= {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(task)
+        }
+        const response = await fetch('  https://advise-passengers-slots-dude.trycloudflare.com/newuser',options);
+        if (!response.ok) {
+          throw new Error('Failed to add task');
+        }
+  
+        // Update local state with the new task
+        setTasks([...tasks, task]);
+        setNewTask('');
+        setAssignedTo('');
+        setError('');
+      } catch (error) {
+        setError('Failed to add task');
+        console.log(error);
+      }
     } else {
       setError('Please fill out all fields.');
     }
   };
 
-  // const addTask = async () => {
-  //   if (newTask.trim() !== '' && assignedTo !== '') {
-  //     const task = {
-  //       id: uuidv4(),
-  //       title: newTask,
-  //       status: 'pending',
-  //       assignedTo: assignedTo
-  //     };
-  
-  //     try {
-  //       const options= {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json'
-  //         },
-  //         body: JSON.stringify(task)
-  //       }
-  //       const response = await fetch('http://localhost:8080/newuser',options);
-  //       if (!response.ok) {
-  //         throw new Error('Failed to add task');
-  //       }
-  
-  //       // Update local state with the new task
-  //       setTasks([...tasks, task]);
-  //       setNewTask('');
-  //       setAssignedTo('');
-  //       setError('');
-  //     } catch (error) {
-  //       setError('Failed to add task');
-  //       console.error(error);
-  //     }
-  //   } else {
-  //     setError('Please fill out all fields.');
-  //   }
-  // };
-
+ 
   const handleInputChange = (event) => {
     setNewTask(event.target.value);
   };
@@ -103,7 +111,7 @@ const TaskListInterface = () => {
             placeholder='Add new task'
             className='width'
           />
-
+          
           <select value={assignedTo} onChange={handleAssignedToChange} className='width-50'>
             <option value=''>Assign to:</option>
             <option value='user1'>User 1</option>
@@ -111,7 +119,7 @@ const TaskListInterface = () => {
             <option value='team1'>Team 1</option>
             <option value='team2'>Team 2</option>
           </select>
-
+  
           <button onClick={addTask} className='add-btn'>
             Add Task
           </button>
@@ -125,7 +133,7 @@ const TaskListInterface = () => {
           className='img'
         />
       </div>
-
+  
       <div>
         <ul className='task-nav'>
           <li className='font'>Title</li>
@@ -134,12 +142,15 @@ const TaskListInterface = () => {
           <li className='font'>Actions</li>
         </ul>
       </div>
-      {tasks.map((task) => (
-        <TaskItems key={task.id} task={task} handleCheckboxChange={handleCheckboxChange} />
-      ))}
+      {tasks.length > 0 ? (
+        tasks.map((task) => (
+          <TaskItems key={task.id} task={task} handleCheckboxChange={handleCheckboxChange} handleDelete={handleDelete}/>
+        ))
+      ) : null}
       <TaskSummaryPage tasks={tasks} />
     </div>
   );
+  
 };
 
 export default TaskListInterface;

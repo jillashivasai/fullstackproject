@@ -1,7 +1,7 @@
 .task-nav{
     display: flex;
     justify-content: space-between;
-    width:90vw;
+    width:80vw;
 }
   .d-flex{
     display: flex;
